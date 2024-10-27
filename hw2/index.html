@@ -1,136 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>台灣出生死亡圖</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣出生死亡折線圖</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
-<body>
     <h1>台灣出生死亡圖</h1>
     <div id='chart-container'>
         <svg width="1600" height="800"></svg>
     </div>
+<body>
     <script>
         d3.text('data.csv').then((RawData) => {
             const rows = d3.csvParseRows(RawData);
-        
-            const years = rows[0].slice(2).map((d) => +d); // 1970 - 2070
-            const birthData = rows[2].slice(2).map((d) => +d);
-            const deathData = rows[3].slice(2).map((d) => +d);
-        
+
+            const years = rows[0].slice(2).map(d => +d); 
+            const birthData = rows[2].slice(2).map(d => +d);
+            const deathData = rows[3].slice(2).map(d => +d);
+
             let data = years.map((year, i) => ({
                 year: year,
                 births: birthData[i],
                 deaths: deathData[i]
             }));
-        
-            data = data.slice(0, 52); // 取得前 52 筆資料
-        
-            // 設定圖表尺寸
-            const margin = { top: 30, right: 30, bottom: 50, left: 100 };
-            const width = 1600 - margin.left - margin.right;
-            const height = 800 - margin.top - margin.bottom;
-        
-            const svg = d3
-                .select('svg')
+
+            data = data.slice(0, 52);
+
+            const margin = { top: 40, right: 100, bottom: 50, left: 100 },
+                  width = 1600 - margin.left - margin.right,
+                  height = 800 - margin.top - margin.bottom;
+
+            const svg = d3.select('svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom)
                 .append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-        
-            const x = d3
-                .scaleBand()
-                .domain(data.map((d) => d.year))
-                .range([0, width])
-                .padding(0.1); 
-        
-            const y = d3
-                .scaleLinear()
-                .domain([0, d3.max(data, (d) => Math.max(d.births, d.deaths))])
+
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.year))
+                .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => Math.max(d.births, d.deaths))])
                 .range([height, 0]);
-                
-            // x 軸和 y 軸
-            svg
-                .append('g')
+
+            svg.append('g')
                 .attr('transform', `translate(0,${height})`)
-                .call(d3.axisBottom(x).tickFormat(d3.format('d'))); 
-        
-            svg
-                .append('g')
+                .call(d3.axisBottom(x).tickFormat(d3.format('d')));
+
+            svg.append('g')
                 .call(d3.axisLeft(y));
-        
-            // 出生人數
-            svg
-                .selectAll('.bar.birth')
-                .data(data)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar birth')
-                .attr('x', (d) => x(d.year) + x.bandwidth() / 4)
-                .attr('y', (d) => y(d.births))
-                .attr('width', x.bandwidth() / 2)
-                .attr('height', (d) => height - y(d.births))
-                .attr('fill', '#1f77b4');
-        
-            // 死亡人數
-            svg
-                .selectAll('.bar.death')
-                .data(data)
-                .enter()
-                .append('rect')
-                .attr('class', 'bar death')
-                .attr('x', (d) => x(d.year) + (x.bandwidth() * 3) / 4)
-                .attr('y', (d) => y(d.deaths))
-                .attr('width', x.bandwidth() / 2)
-                .attr('height', (d) => height - y(d.deaths))
-                .attr('fill', '#aec7e8');
-        
-            // 出生圖例
-            svg
-                .append('text')
-                .attr('x', width - 100)
-                .attr('y', 20)
-                .attr('fill', '#1f77b4')
-                .text('出生人數')
-                .style('font-size', '20px')
-                .style('cursor', 'pointer') 
-                .on('click', function() {
-                    const isVisible = svg.selectAll('.bar.birth').style('display') === 'none';
-                    svg.selectAll('.bar.birth').style('display', isVisible ? 'block' : 'none');
+
+            const birthLine = svg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "#1f77b4")
+                .attr("stroke-width", 2)
+                .attr("d", d3.line()
+                    .x(d => x(d.year) + x.bandwidth() / 2)
+                    .y(d => y(d.births))
+                );
+
+            const deathLine = svg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "#aec7e8")
+                .attr("stroke-width", 2)
+                .attr("d", d3.line()
+                    .x(d => x(d.year) + x.bandwidth() / 2)
+                    .y(d => y(d.deaths))
+                );
+
+            // 圖例
+            const legend = svg.append("g")
+                .attr("transform", `translate(${width + 20}, 20)`);
+
+            legend.append("text")
+                .attr("x", 0)
+                .attr("y", 20)
+                .attr("fill", "#1f77b4")
+                .text("出生人數")
+                .style("cursor", "pointer")
+                .style("font-size", "20px")
+                .on("click", function() {
+                    const isVisible = birthLine.style("display") === "none";
+                    birthLine.style("display", isVisible ? "block" : "none");
                 });
 
-            // 死亡圖例
-            svg
-                .append('text')
-                .attr('x', width - 100)
-                .attr('y', 40)
-                .attr('fill', '#aec7e8')
-                .text('死亡人數')
-                .style('font-size', '20px')
-                .style('cursor', 'pointer') 
-                .on('click', function() {
-                    const isVisible = svg.selectAll('.bar.death').style('display') === 'none';
-                    svg.selectAll('.bar.death').style('display', isVisible ? 'block' : 'none');
+            legend.append("text")
+                .attr("x", 0)
+                .attr("y", 40)
+                .attr("fill", "#aec7e8")
+                .text("死亡人數")
+                .style("cursor", "pointer")
+                .style("font-size", "20px")
+                .on("click", function() {
+                    const isVisible = deathLine.style("display") === "none";
+                    deathLine.style("display", isVisible ? "block" : "none");
                 });
-
-            // X 軸標籤
-            svg
-                .append('text')
-                .attr('x', width / 2)
-                .attr('y', height + margin.bottom - 10)
-                .attr('text-anchor', 'middle')
-                .text('年份');
-        
-            // Y 軸標籤
-            svg
-                .append("text")
-                .attr("text-anchor", "middle")
-                .attr("x", -margin.left / 2 - 20)
-                .attr("y", (margin.top + height) / 2)
-                .style("writing-mode","vertical-rl")
-                .style("glyph-orientation-vertical", "0")
-                .text("人數");
         });
     </script>
     <p>
