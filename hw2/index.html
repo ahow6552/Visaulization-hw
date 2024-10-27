@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>台灣出生死亡圖</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>台灣出生死亡圖</h1>
+    <div id='chart-container'>
+        <svg width="1600" height="800"></svg>
+    </div>
+    <script>
+        d3.text('data.csv').then((RawData) => {
+            const rows = d3.csvParseRows(RawData);
+        
+            const years = rows[0].slice(2).map((d) => +d); // 1970 - 2070
+            const birthData = rows[2].slice(2).map((d) => +d);
+            const deathData = rows[3].slice(2).map((d) => +d);
+        
+            let data = years.map((year, i) => ({
+                year: year,
+                births: birthData[i],
+                deaths: deathData[i]
+            }));
+        
+            data = data.slice(0, 52); // 取得前 52 筆資料
+        
+            // 設定圖表尺寸
+            const margin = { top: 30, right: 30, bottom: 50, left: 100 };
+            const width = 1600 - margin.left - margin.right;
+            const height = 800 - margin.top - margin.bottom;
+        
+            const svg = d3
+                .select('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+        
+            const x = d3
+                .scaleBand()
+                .domain(data.map((d) => d.year))
+                .range([0, width])
+                .padding(0.1); 
+        
+            const y = d3
+                .scaleLinear()
+                .domain([0, d3.max(data, (d) => Math.max(d.births, d.deaths))])
+                .range([height, 0]);
+                
+            // x 軸和 y 軸
+            svg
+                .append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x).tickFormat(d3.format('d'))); 
+        
+            svg
+                .append('g')
+                .call(d3.axisLeft(y));
+        
+            // 出生人數
+            svg
+                .selectAll('.bar.birth')
+                .data(data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar birth')
+                .attr('x', (d) => x(d.year) + x.bandwidth() / 4)
+                .attr('y', (d) => y(d.births))
+                .attr('width', x.bandwidth() / 2)
+                .attr('height', (d) => height - y(d.births))
+                .attr('fill', '#1f77b4');
+        
+            // 死亡人數
+            svg
+                .selectAll('.bar.death')
+                .data(data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar death')
+                .attr('x', (d) => x(d.year) + (x.bandwidth() * 3) / 4)
+                .attr('y', (d) => y(d.deaths))
+                .attr('width', x.bandwidth() / 2)
+                .attr('height', (d) => height - y(d.deaths))
+                .attr('fill', '#aec7e8');
+        
+            // 出生圖例
+            svg
+                .append('text')
+                .attr('x', width - 100)
+                .attr('y', 20)
+                .attr('fill', '#1f77b4')
+                .text('出生人數')
+                .style('font-size', '20px')
+                .style('cursor', 'pointer') 
+                .on('click', function() {
+                    const isVisible = svg.selectAll('.bar.birth').style('display') === 'none';
+                    svg.selectAll('.bar.birth').style('display', isVisible ? 'block' : 'none');
+                });
+
+            // 死亡圖例
+            svg
+                .append('text')
+                .attr('x', width - 100)
+                .attr('y', 40)
+                .attr('fill', '#aec7e8')
+                .text('死亡人數')
+                .style('font-size', '20px')
+                .style('cursor', 'pointer') 
+                .on('click', function() {
+                    const isVisible = svg.selectAll('.bar.death').style('display') === 'none';
+                    svg.selectAll('.bar.death').style('display', isVisible ? 'block' : 'none');
+                });
+
+            // X 軸標籤
+            svg
+                .append('text')
+                .attr('x', width / 2)
+                .attr('y', height + margin.bottom - 10)
+                .attr('text-anchor', 'middle')
+                .text('年份');
+        
+            // Y 軸標籤
+            svg
+                .append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", -margin.left / 2 - 20)
+                .attr("y", (margin.top + height) / 2)
+                .style("writing-mode","vertical-rl")
+                .style("glyph-orientation-vertical", "0")
+                .text("人數");
+        });
+    </script>
+    <p>
+        <b>●設計說明:</b>
+        <br>
+        使用csv讀取檔案，點擊圖例會讓對應的圖消失/出現
+        <br>
+        <b>●說明設計選擇：</b>
+        <br>
+        此份資料由年分跟人數兩個維度構成，並有出生跟死亡兩個資料集構成，使用折線圖來表現人數變化，並用深淺不同但同色系的顏色表達
+        <br>
+        <b>●說明設計過程考量相關的經驗法則：</b>
+        <br>
+        資料來源 : <a href="https://pop-proj.ndc.gov.tw/Custom_Fast_Statistics_Search.aspx?d=H07&m=80&n=233&sms=10363&Create=1">國家發展委員會</a>
+    </p>
+</body>
+</html>

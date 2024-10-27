@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣新生兒人數統計</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+
+    <h1>台灣新生兒人數統計 (1990-2023)</h1>
+    <div class="chart-container">
+        <svg width="800" height="400"></svg>
+    </div>
+
+    <script>
+        const data = [
+            { year: 1990, births: 335618 },
+            { year: 1991, births: 321932 },
+            { year: 1992, births: 321632 },
+            { year: 1993, births: 325613 },
+            { year: 1994, births: 322938 },
+            { year: 1995, births: 329581 },
+            { year: 1996, births: 325545 },
+            { year: 1997, births: 326002 },
+            { year: 1998, births: 271450 },
+            { year: 1999, births: 283661 },
+            { year: 2000, births: 305312 },
+            { year: 2001, births: 260354 },
+            { year: 2002, births: 247530 },
+            { year: 2003, births: 227070 },
+            { year: 2004, births: 216419 },
+            { year: 2005, births: 205854 },
+            { year: 2006, births: 204459 },
+            { year: 2007, births: 204414 },
+            { year: 2008, births: 198733 },
+            { year: 2009, births: 191310 },
+            { year: 2010, births: 166886 },
+            { year: 2011, births: 196627 },
+            { year: 2012, births: 229481 },
+            { year: 2013, births: 199113 },
+            { year: 2014, births: 210383 },
+            { year: 2015, births: 213598 },
+            { year: 2016, births: 208440 },
+            { year: 2017, births: 193844 },
+            { year: 2018, births: 181601 },
+            { year: 2019, births: 177767 },
+            { year: 2020, births: 165249 },
+            { year: 2021, births: 153820 },
+            { year: 2022, births: 138986 },
+            { year: 2023, births: 145903 }
+        ];
+
+        const margin = { top: 30, right: 30, bottom: 50, left: 100 };
+        const width = 1600 - margin.left - margin.right;
+        const height = 600 - margin.top - margin.bottom;
+
+        const svg = d3.select("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleBand()
+            .domain(data.map(d => d.year))
+            .range([0, width])
+            .padding(0.2);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.births)])
+            .range([height, 0]);
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        svg.selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.year))
+            .attr("y", d => y(d.births))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.births))
+            .style("fill", "orange");
+
+        svg.append("text")
+            .attr("text-anchor", "middle")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 5)
+            .text("年份")
+            .style("font-size", "20px")
+
+    </script>
+    資料來源 : <a href="https://pop-proj.ndc.gov.tw/Custom_Fast_Statistics_Search.aspx?d=H07&m=80&n=233&sms=10363&Create=1">國家發展委員會</a>
+
+</body>
+
+</html>
