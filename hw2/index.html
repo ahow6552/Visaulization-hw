@@ -6,11 +6,13 @@
     <title>台灣出生死亡折線圖</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
-    <h1>台灣出生死亡圖</h1>
+<body>
+    <h1>
+    台灣出生死亡圖
+    </h1>
     <div id='chart-container'>
         <svg width="1600" height="800"></svg>
     </div>
-<body>
     <script>
         d3.text('data.csv').then((RawData) => {
             const rows = d3.csvParseRows(RawData);
@@ -31,7 +33,7 @@
                   width = 1600 - margin.left - margin.right,
                   height = 800 - margin.top - margin.bottom;
 
-            const svg = d3.select('svg')
+            const svg = d3.select('#chart-container svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom)
                 .append('g')
@@ -71,6 +73,71 @@
                     .x(d => x(d.year) + x.bandwidth() / 2)
                     .y(d => y(d.deaths))
                 );
+            
+            // 特別標記死>生，將線段變紅
+            svg.selectAll(".death-segment")
+                .data(data.slice(1))
+                .enter()
+                .append("line")
+                .attr("class", "death-segment")
+                .attr("x1", (d, i) => x(data[i].year) + x.bandwidth() / 2)
+                .attr("y1", (d, i) => y(data[i].deaths))
+                .attr("x2", (d, i) => x(d.year) + x.bandwidth() / 2)
+                .attr("y2", (d, i) => y(d.deaths))
+                .attr("stroke", (d, i) => data[i].deaths > data[i].births ? "red" : "#aec7e8")
+                .attr("stroke-width", 2);
+
+            // 節點數字
+            const tooltip = d3.select("body").append("div")
+                .style("position", "absolute")
+                .style("background", "#f9f9f9")
+                .style("padding", "10px")
+                .style("border", "1px solid #d3d3d3")
+                .style("border-radius", "4px")
+                .style("display", "none");
+
+            svg.selectAll(".birth-point")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("class", "birth-point")
+                .attr("cx", d => x(d.year) + x.bandwidth() / 2)
+                .attr("cy", d => y(d.births))
+                .attr("r", 5)
+                .attr("fill", "#1f77b4")
+                .on("mouseover", (event, d) => {
+                    tooltip.style("display", "block")
+                        .html(`年份: ${d.year}<br>出生人數: ${d.births}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mousemove", (event) => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mouseout", () => tooltip.style("display", "none"));
+
+            svg.selectAll(".death-point")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("class", "death-point")
+                .attr("cx", d => x(d.year) + x.bandwidth() / 2)
+                .attr("cy", d => y(d.deaths))
+                .attr("r", 5)
+                .attr("fill", d => d.births < d.deaths ? "red" : "#aec7e8")
+                .on("mouseover", (event, d) => {
+                    tooltip.style("display", "block")
+                        .html(`年份: ${d.year}<br>死亡人數: ${d.deaths}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mousemove", (event) => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                })
+                .on("mouseout", () => tooltip.style("display", "none"));
+        
 
             // 圖例
             const legend = svg.append("g")
@@ -86,6 +153,7 @@
                 .on("click", function() {
                     const isVisible = birthLine.style("display") === "none";
                     birthLine.style("display", isVisible ? "block" : "none");
+                    svg.selectAll(".birth-point").style("display", isVisible ? "block" : "none");
                 });
 
             legend.append("text")
@@ -98,19 +166,27 @@
                 .on("click", function() {
                     const isVisible = deathLine.style("display") === "none";
                     deathLine.style("display", isVisible ? "block" : "none");
+                    svg.selectAll(".death-point, .death-segment").style("display", isVisible ? "block" : "none");
                 });
         });
     </script>
     <p>
         <b>●設計說明:</b>
         <br>
-        使用csv讀取檔案，點擊圖例會讓對應的圖消失/出現
+        使用csv讀取檔案，點擊圖例會讓對應的圖消失/出現，各節點上有對應的詳細數字可以觀看
         <br>
         <b>●說明設計選擇：</b>
         <br>
-        此份資料由年分跟人數兩個維度構成，並有出生跟死亡兩個資料集構成，使用折線圖來表現人數變化，並用深淺不同但同色系的顏色表達
+        此份資料由年分跟人數兩個維度構成，並有出生跟死亡兩個資料集構成，使用折線圖來表現人數變化，並用深淺不同但同色系的顏色表達<br>
+        也可讓閱眾能夠聚焦在自己所需的資料上，設置圖例按紐<br>
         <br>
         <b>●說明設計過程考量相關的經驗法則：</b>
+        <br>
+        本圖想要表達的除了出生以及死亡人數，更希望使用者在一開始就注意到人口的轉折點<br>
+        所以在出生人數 < 死亡人數時，出現警示顏色紅色
+        <span style="display: inline-block; width: 20px; height: 20px; background-color: red; vertical-align: middle;"></span>
+        ，表達出重點。
+        <br>
         <br>
         資料來源 : <a href="https://pop-proj.ndc.gov.tw/Custom_Fast_Statistics_Search.aspx?d=H07&m=80&n=233&sms=10363&Create=1">國家發展委員會</a>
     </p>
