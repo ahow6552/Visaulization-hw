@@ -1,119 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>台灣移工圖表</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    #info-block {
-      background-color: #f8f9fa;
-      padding: 20px;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #ddd;
-    }
-    #info-block h2 {
-      margin: 0;
-      font-size: 24px;
-      color: #333;
-    }
-    #info-block p {
-      margin: 5px 0 0;
-      font-size: 16px;
-      color: #666;
-    }
-    svg {
-      display: block;
-      margin: 0 auto;
-    }
-    .bar {
-      fill: steelblue;
-    }
-    .bar:hover {
-      fill: orange;
-    }
-    .axis-label {
-      font-size: 12px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <!-- 說明文字 -->
-  <div id="info-block">
-    <h2>台灣移工人數變化圖表重繪</h2>
-    <p>
-        原始資料以及文章參考來源<br>
-        <a href="https://tw.news.yahoo.com/%E5%85%A8%E5%8F%B0%E7%A7%BB%E5%B7%A5%E5%B0%87%E7%A0%B480%E8%90%AC%E5%A4%A7%E9%97%9C-%E9%9B%BB%E6%A5%AD%E4%B9%9F%E6%8B%9B%E6%89%8B-%E5%A4%B1%E8%81%AF%E8%80%85%E9%80%BC%E8%BF%919%E8%90%AC%E4%BA%BA-%E9%80%99%E7%94%A2%E6%A5%AD%E5%8D%A0%E6%9C%80%E5%A4%9A-091507621.html"
-        target="_blank">全台移工將破80萬大關，電業也招手！失聯者逼近9萬人 這產業占最多 by 李瑋萱 (2024)</a><br>
-        下圖為該報導所使用之勞動部提供的統計圖表<br>
-        <img src="origin_pic.png" width="400" height="250"><br>
-        可以看到圖片為圓餅圖，並簡單透過顏色分類，右上有提供使用者年月份的資料篩選<br>
-        資料來源為<a href="https://statdb.mol.gov.tw/statiscla/webMain.aspx?sys=100&kind=10&type=1&funid=wqrymenu2&cparm1=wq14&rdm=I4y9dcIi"
-        target="_blank">勞動部 - 勞動統計查詢網 - 產業及社福移工人數按國籍分</a>
-    </p>
-  </div>
-  <div id="info-block">
-    <p>
-        我們認為此份勞動部所製圖表有以下幾個問題<br>
-        1.使用圓餅圖不利於使用者透過圖表比較數據差異，可能會有視覺上的困難<br>
-        2.此表僅能呈現當月的人數統計，若需要觀察長期變化，則需額外進行多餘的紀錄<br>
-        3.部分國籍在此圓餅圖中並沒有明顯占比，這可能會導致讀者閱讀上的疑惑<br>
-        基於以上幾點，我們決定重繪圖表，並以<b>折線圖</b>方式表示資料<br>
-        橫軸為時間變化，縱軸為人數變化，並保留篩選年分，新增國家過濾<br>
-    </p>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>台灣移工圖表</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+      #info-block {
+        background-color: #f8f9fa;
+        padding: 20px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #ddd;
+      }
+      #info-block h2 {
+        margin: 0;
+        font-size: 24px;
+        color: #333;
+      }
+      #info-block p {
+        margin: 5px 0 0;
+        font-size: 16px;
+        color: #666;
+      }
+      #name-block {
+          background-color: black;
+          padding: 20px;
+          margin-bottom: 10px;
+          border-bottom: 2px solid #ddd;
+          width: 400
+          height: 200
+      }
+      svg {
+        display: inline-block;
+        margin: 0 ;
+        float: left;
+      }
+      .axis-label {
+        font-size: 12px;
+        font-weight: bold;
+      }
+      select {
+          margin: 20px;
+          padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="tooltip" style="position: absolute; visibility: hidden; background: white; border: 1px solid #ccc; padding:7px; border-radius: 3px; font-size: 12px;"></div>
+    <div id="info-block">
+      <h2>台灣移工人數變化圖表重繪</h2>
+      <p>
+        原始資料以及文章參考來源<br />
+        <a
+          href="https://tw.news.yahoo.com/%E5%85%A8%E5%8F%B0%E7%A7%BB%E5%B7%A5%E5%B0%87%E7%A0%B480%E8%90%AC%E5%A4%A7%E9%97%9C-%E9%9B%BB%E6%A5%AD%E4%B9%9F%E6%8B%9B%E6%89%8B-%E5%A4%B1%E8%81%AF%E8%80%85%E9%80%BC%E8%BF%919%E8%90%AC%E4%BA%BA-%E9%80%99%E7%94%A2%E6%A5%AD%E5%8D%A0%E6%9C%80%E5%A4%9A-091507621.html"
+          target="_blank"
+          >全台移工將破80萬大關，電業也招手！失聯者逼近9萬人 這產業占最多 by
+          李瑋萱 (2024)</a
+        ><br />
+        下圖為該報導所使用之勞動部提供的統計圖表<br />
+        <img src="origin_pic.png" width="400" height="250" /><br />
+        可以看到圖片為圓餅圖，並簡單透過顏色分類，右上有提供使用者年月份的資料篩選<br />
+        資料來源為<a
+          href="https://statdb.mol.gov.tw/statiscla/webMain.aspx?sys=100&kind=10&type=1&funid=wqrymenu2&cparm1=wq14&rdm=I4y9dcIi"
+          target="_blank"
+          >勞動部 - 勞動統計查詢網 - 產業及社福移工人數按國籍分</a
+        >
+      </p>
+    </div>
+    <div id="info-block">
+      <p>
+        我們認為此份勞動部所製圖表有以下幾個問題<br />
+        1.使用圓餅圖不利於使用者透過圖表比較數據差異，可能會有視覺上的困難<br />
+        2.此表僅能呈現當月的人數統計，若需要觀察長期變化，則需額外進行多餘的紀錄<br />
+        3.部分國籍在此圓餅圖中並沒有明顯占比，這可能會導致讀者閱讀上的疑惑<br />
+        基於以上幾點，我們決定重繪圖表來表示資料<br />
+      </p>
+    </div>
 
-  <!-- 圖表 -->
-  <svg width="800" height="400"></svg>
+    <!-- 圖表 -->
+    <div>
+      <label for="year-select">選擇年份:</label>
+      <select id="year-select"></select>
+    </div>
+    <svg width="1200" height="900"></svg>
+    <script>
+      d3.json("data.json")
+        .then((data) => {
+          const margin = { top: 50, right: 60, bottom: 100, left: 100 };
+          const width = 1200 - margin.left - margin.right;
+          const height = 900 - margin.top - margin.bottom;
 
-  <script>
-    // 使用 d3.json 載入外部 JSON 資料
-    d3.json("data.json").then(data => {
-      const margin = { top: 20, right: 30, bottom: 50, left: 50 };
-      const width = 800 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
+          const svg = d3
+            .select("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const svg = d3.select("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+          const x = d3.scaleBand().range([0, width]).padding(0.1);
+          const y = d3.scaleLinear().range([height, 0]);
 
-      const x = d3.scaleBand()
-        .domain(data.map(d => d.x))
-        .range([0, width])
-        .padding(0.1);
-      svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .attr("transform", "rotate(-45)")
-        .style("text-anchor", "end");
+          data.forEach((data) => {
+            data.year = data.x.split("-")[0];
+            data.month = data.x.split("-")[1];
+            data.value = data.y;
+            data.country = data.l;
+          });
 
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.y)])
-        .nice()
-        .range([height, 0]);
-      svg.append("g").call(d3.axisLeft(y));
+          // 按國家分組資料以及分色
+          const countries = d3.group(data, (data) => data.country);
+          const color = d3.scaleOrdinal()
+            .domain(Array.from(countries.keys())) 
+            .range(d3.schemeCategory10);
 
-      svg.selectAll(".bar")
-        .data(data)
-        .join("rect")
-        .attr("class", "bar")
-        .attr("x", d => x(d.x))
-        .attr("y", d => y(d.y))
-        .attr("width", x.bandwidth())
-        .attr("height", d => height - y(d.y));
-    }).catch(error => {
-      console.error("Error loading or processing JSON data:", error);
-    });
-  </script>
-</body>
+          const years = Array.from(new Set(data.map((d) => d.year)));
+          const yearSelect = d3.select("#year-select");
+          yearSelect
+            .selectAll("option")
+            .data(years)
+            .enter()
+            .append("option")
+            .attr("value", (data) => data)
+            .text((data) => data);
+
+          function updateChart(year) {
+            const filteredData = data.filter((d) => d.year === year);
+
+            if (filteredData.length === 0) {
+              svg.selectAll("*").remove();
+              return;
+            }
+
+            const months = Array.from(
+              new Set(filteredData.map((d) => d.month))
+            ).sort((a, b) => a - b); // 確保月份按順序排列
+
+            x.domain(months);
+            y.domain([0, d3.max(filteredData, (d) => d.value)]);
+
+            svg.selectAll("*").remove();
+
+            // X,Y 軸繪製
+            svg
+              .append("g")
+              .attr("transform", `translate(0,${height})`)
+              .call(d3.axisBottom(x));
+            svg.append("g").call(d3.axisLeft(y));
+
+            const line = d3
+              .line()
+              .x((d) => x(d.month) + x.bandwidth() / 2)
+              .y((d) => y(d.value));
+
+            const filteredCountries = d3.group(filteredData, (d) => d.country);
+            
+            filteredCountries.forEach((countryData, countryName, i) => {
+              countryData.sort((a, b) => a.month - b.month);
+
+              svg
+                .append("path")
+                .data([countryData])
+                .attr("class", "line")
+                .attr("d", line)
+                .attr("fill", "none")
+                .attr("stroke", color(countryName));
+
+                svg
+                .selectAll(`.dot-${countryName}`)
+                .data(countryData)
+                .enter()
+                .append("circle")
+                .attr("class", `dot-${countryName}`)
+                .attr("cx", (d) => {
+                  return x(d.month) + x.bandwidth() / 2;
+                })
+                .attr("cy", (d) => {
+                  return y(d.value);
+                })
+                .attr("r", 4)
+                .attr("fill", color(countryName))
+                .on("mouseover", function (event, d) {
+                  d3.select("#tooltip")
+                    .style("visibility", "visible")
+                    .html(
+                      `<strong>國家:</strong> ${d.country}<br><strong>月份:</strong> ${d.month}<br><strong>人數:</strong> ${d.value}`
+                    );
+                })
+                .on("mousemove", function (event) {
+                  d3.select("#tooltip")
+                    .style("top", `${event.pageY + 10}px`)
+                    .style("left", `${event.pageX + 10}px`);
+                })
+                .on("mouseout", function () {
+                  d3.select("#tooltip").style("visibility", "hidden");
+                });
+              
+
+            });
+
+            const legend = svg
+              .append("g")
+              .attr("transform", "translate(0, -20)");
+
+            const legendItems = legend
+              .selectAll(".legend-item")
+              .data(Array.from(filteredCountries.keys()))
+              .enter()
+              .append("g")
+              .attr("class", "legend-item")
+              .attr("transform", (d, i) => `translate(${i * 100}, -20)`);
+
+            legendItems
+              .append("rect")
+              .attr("width", 15)
+              .attr("height", 15)
+              .attr("fill", (d) => color(d));
+
+            legendItems
+              .append("text")
+              .attr("x", 20)
+              .attr("y", 12)
+              .text((d) => d);
+          }
+          
+          // init year
+          updateChart("2024");
+
+          d3.select("#year-select").on("change", function () {
+            const selectedYear = this.value;
+            updateChart(selectedYear);
+          });
+        })
+        .catch((error) => {
+          console.error("Error loading or processing JSON data:", error);
+        });
+    </script>
+  </body>
 </html>
